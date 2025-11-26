@@ -1,18 +1,18 @@
 /* Custom but familiar toggle styling */
-.yt-audio-switch {
+.yt-audiophile-switch {
   position: relative;
   display: inline-block;
   width: 34px;
   height: 18px;
 }
 
-.yt-audio-switch input {
+.yt-audiophile-switch input {
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.yt-audio-slider {
+.yt-audiophile-slider {
   position: absolute;
   cursor: pointer;
   top: 0;
@@ -24,7 +24,7 @@
   border-radius: 34px;
 }
 
-.yt-audio-slider::before {
+.yt-audiophile-slider::before {
   position: absolute;
   content: "";
   height: 12px;
@@ -36,10 +36,10 @@
   border-radius: 50%;
 }
 
-.yt-audio-switch input:checked + .yt-audio-slider {
+.yt-audiophile-switch input:checked + .yt-audiophile-slider {
   background-color: #3ea6ff; /* YouTube blue */
 }
 
-.yt-audio-switch input:checked + .yt-audio-slider::before {
+.yt-audiophile-switch input:checked + .yt-audiophile-slider::before {
   transform: translateX(16px);
 }

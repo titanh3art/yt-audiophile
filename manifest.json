@@ -8,9 +8,15 @@
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
-      "js": ["content.js"],
-      "css": ["content.css"],
+      "js": ["main.js"],
+      "css": ["style.css"],
       "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["setPlaybackQualityTiny.js", "setPlaybackQualityLarge.js"],
+      "matches": ["https://www.youtube.com/*"]
     }
   ],
   "icons": {
