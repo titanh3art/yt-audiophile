@@ -2,7 +2,7 @@ class YouTubeAudiophile {
   static activate() {
     // Set video quality to tiny (144p)
     const s = document.createElement("script");
-    s.src = chrome.runtime.getURL("tinyPlayback.js");
+    s.src = chrome.runtime.getURL("setPlaybackQualityTiny.js");
     document.documentElement.appendChild(s);
     s.onload = () => s.remove();
 
@@ -15,7 +15,7 @@ class YouTubeAudiophile {
   static deactivate() {
     // Set video quality to large (480p)
     const s = document.createElement("script");
-    s.src = chrome.runtime.getURL("largePlayback.js");
+    s.src = chrome.runtime.getURL("setPlaybackQualityLarge.js");
     document.documentElement.appendChild(s);
     s.onload = () => s.remove();
 
