@@ -1,0 +1,45 @@
+/* Custom but familiar toggle styling */
+.yt-audio-switch {
+  position: relative;
+  display: inline-block;
+  width: 34px;
+  height: 18px;
+}
+
+.yt-audio-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.yt-audio-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #aaa;
+  transition: 0.3s;
+  border-radius: 34px;
+}
+
+.yt-audio-slider::before {
+  position: absolute;
+  content: "";
+  height: 12px;
+  width: 12px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.yt-audio-switch input:checked + .yt-audio-slider {
+  background-color: #3ea6ff; /* YouTube blue */
+}
+
+.yt-audio-switch input:checked + .yt-audio-slider::before {
+  transform: translateX(16px);
+}

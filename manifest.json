@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Audiophile",
+  "description": "Plays audio on youtube.com, hides video and thumbnails",
+  "version": "1.0.0",
+  "author": "titanh3art",
+  "homepage_url": "https://github.com/titanh3art/yt-audiophile.git",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
