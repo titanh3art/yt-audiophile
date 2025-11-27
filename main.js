@@ -1,16 +1,26 @@
 class YouTubeAudiophile {
   static isActive = false;
   static videoObserver = null;
+  static toggleDebounceTimer = null;
+  static cachedElements = new Map();
 
   static activate() {
     this.isActive = true;
 
+    // Debounce rapid toggles
+    if (this.toggleDebounceTimer) {
+      clearTimeout(this.toggleDebounceTimer);
+    }
+
+    this.toggleDebounceTimer = setTimeout(() => {
+      this._performActivate();
+    }, 100);
+  }
+
+  static _performActivate() {
     try {
-      // Set video quality to lowest available (typically 144p)
-      const s = document.createElement("script");
-      s.src = chrome.runtime.getURL("setPlaybackQualityTiny.js");
-      document.documentElement.appendChild(s);
-      s.onload = () => s.remove();
+      // Reuse script element for performance
+      this.injectScript("setPlaybackQualityTiny.js");
     } catch (error) {
       console.warn("[YouTube Audiophile] Error setting quality:", error);
     }
@@ -25,12 +35,20 @@ class YouTubeAudiophile {
   static deactivate() {
     this.isActive = false;
 
+    // Debounce rapid toggles
+    if (this.toggleDebounceTimer) {
+      clearTimeout(this.toggleDebounceTimer);
+    }
+
+    this.toggleDebounceTimer = setTimeout(() => {
+      this._performDeactivate();
+    }, 100);
+  }
+
+  static _performDeactivate() {
     try {
-      // Set video quality to higher quality (480p or available)
-      const s = document.createElement("script");
-      s.src = chrome.runtime.getURL("setPlaybackQualityLarge.js");
-      document.documentElement.appendChild(s);
-      s.onload = () => s.remove();
+      // Reuse script element for performance
+      this.injectScript("setPlaybackQualityLarge.js");
     } catch (error) {
       console.warn("[YouTube Audiophile] Error setting quality:", error);
     }
@@ -40,6 +58,23 @@ class YouTubeAudiophile {
 
     // Stop observing videos
     this.stopVideoObserver();
+  }
+
+  static injectScript(scriptName) {
+    // Reuse existing script element if possible
+    let script = this.cachedElements.get(scriptName);
+    if (!script) {
+      script = document.createElement("script");
+      script.src = chrome.runtime.getURL(scriptName);
+      this.cachedElements.set(scriptName, script);
+    }
+
+    // Remove and re-add to ensure execution
+    if (script.parentNode) {
+      script.remove();
+    }
+    document.documentElement.appendChild(script);
+    script.onload = () => script.remove();
   }
 
   static hideCurrentVideo() {
@@ -59,43 +94,95 @@ class YouTubeAudiophile {
   static startVideoObserver() {
     if (this.videoObserver) return; // Already observing
 
+    let mutationCount = 0;
     this.videoObserver = new MutationObserver((mutations) => {
       if (!this.isActive) return;
 
+      // Limit processing to avoid performance issues
+      if (mutationCount++ > 100) {
+        console.warn("[YouTube Audiophile] Too many mutations, throttling observer");
+        return;
+      }
+
+      // Reset counter periodically
+      if (mutationCount > 50) {
+        setTimeout(() => { mutationCount = 0; }, 1000);
+      }
+
       for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-          if (node.nodeType === Node.ELEMENT_NODE) {
-            // Check if a video element was added
-            const videos = node.tagName === "VIDEO" ? [node] :
-                          node.querySelectorAll ? node.querySelectorAll("video") : [];
-            videos.forEach(video => {
-              if (video.style.display !== "none") {
-                console.log("[YouTube Audiophile] New video detected, hiding...");
-                video.style.display = "none";
-                video.setAttribute("aria-hidden", "true");
+        if (mutation.type === 'childList') {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.ELEMENT_NODE && node.tagName === "VIDEO") {
+              // Direct video element added
+              if (node.style.display !== "none") {
+                this.hideVideoElement(node);
               }
-            });
+            } else if (node.querySelectorAll) {
+              // Check for videos in added subtree
+              const videos = node.querySelectorAll("video");
+              videos.forEach(video => {
+                if (video.style.display !== "none") {
+                  this.hideVideoElement(video);
+                }
+              });
+            }
           }
         }
       }
     });
 
-    // Observe the movie_player container and document body for video changes
-    const moviePlayer = document.getElementById("movie_player");
-    if (moviePlayer) {
-      this.videoObserver.observe(moviePlayer, {
-        childList: true,
-        subtree: true
-      });
+    // Observe specific containers more efficiently
+    const targets = [
+      document.getElementById("movie_player"),
+      document.querySelector("#player"),
+      document.querySelector("#player-container")
+    ].filter(Boolean);
+
+    // If no specific targets found, observe a more targeted selector
+    if (targets.length === 0) {
+      const playerContainer = document.querySelector('[class*="player"], [id*="player"]');
+      if (playerContainer) {
+        targets.push(playerContainer);
+      }
     }
 
-    // Also observe the whole document for videos added elsewhere
-    this.videoObserver.observe(document.body, {
-      childList: true,
-      subtree: true
+    // Observe each target with optimized settings
+    targets.forEach(target => {
+      this.videoObserver.observe(target, {
+        childList: true,
+        subtree: true,
+        attributes: false, // Don't watch attribute changes for performance
+        characterData: false
+      });
     });
 
-    console.log("[YouTube Audiophile] Started video observer");
+    // Fallback: observe ytd-app if no specific targets
+    if (targets.length === 0) {
+      const ytdApp = document.querySelector("ytd-app");
+      if (ytdApp) {
+        this.videoObserver.observe(ytdApp, {
+          childList: true,
+          subtree: false // Don't go deep to avoid performance issues
+        });
+      }
+    }
+
+    console.log("[YouTube Audiophile] Started optimized video observer");
+  }
+
+  static hideVideoElement(video) {
+    // Use requestIdleCallback for non-critical operations
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => {
+        video.style.display = "none";
+        video.setAttribute("aria-hidden", "true");
+        console.log("[YouTube Audiophile] Video hidden via observer");
+      });
+    } else {
+      video.style.display = "none";
+      video.setAttribute("aria-hidden", "true");
+      console.log("[YouTube Audiophile] Video hidden via observer");
+    }
   }
 
   static stopVideoObserver() {
@@ -126,14 +213,31 @@ async function addYtAudiophileToggle(retryCount = 0) {
   // Avoid duplicates if user navigates within YouTube
   if (document.getElementById(TOGGLE_CONTAINER_ID)) return;
 
-  // Wait for YouTube logo container to appear with retry logic
-  const logoContainer = document.querySelector("#logo");
+  // Enhanced element detection with multiple selectors
+  const logoSelectors = [
+    "#logo", // Current standard
+    "ytd-masthead #logo", // More specific
+    ".ytd-masthead #logo", // Alternative class-based
+    "[aria-label*='YouTube']", // Accessibility-based
+    "a[href='/'] img[alt*='YouTube']", // Logo link fallback
+    "#masthead #logo" // Alternative masthead selector
+  ];
+
+  let logoContainer = null;
+  for (const selector of logoSelectors) {
+    logoContainer = document.querySelector(selector);
+    if (logoContainer) {
+      // Additional validation - make sure it's in the header area
+      const masthead = logoContainer.closest("#masthead, ytd-masthead, .ytd-masthead");
+      if (masthead) break;
+    }
+  }
 
   if (!logoContainer) {
     if (retryCount < 50) { // Max 50 retries (~5 seconds at 60fps)
       requestAnimationFrame(() => addYtAudiophileToggle(retryCount + 1));
     } else {
-      console.warn("[YouTube Audiophile] Could not find YouTube logo container after retries");
+      console.warn("[YouTube Audiophile] Could not find YouTube logo container after retries with all selectors");
     }
     return;
   }
