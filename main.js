@@ -14,6 +14,7 @@ class YouTubeAudiophile {
 
   static deactivate() {
     // Set video quality to large (480p)
+    // Setting the range from lowest to highest available using player.getAvailableQualityLabels() or getAvailableQualityLevels() is not working
     const s = document.createElement("script");
     s.src = chrome.runtime.getURL("setPlaybackQualityLarge.js");
     document.documentElement.appendChild(s);
@@ -27,7 +28,7 @@ class YouTubeAudiophile {
 }
 
 const TOGGLE_CONTAINER_ID = "yt-audiophile-toggle";
-const TITLE = "YouTube Audiophile (Browser Extension)";
+const TITLE = "YouTube Audiophile (Extension)";
 
 function addYtAudiophileToggle() {
   // Avoid duplicates if user navigates within YouTube
