@@ -5,6 +5,7 @@
   "version": "1.0.0",
   "author": "titanh3art",
   "homepage_url": "https://github.com/titanh3art/yt-audiophile.git",
+  "permissions": ["storage"],
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*"],
