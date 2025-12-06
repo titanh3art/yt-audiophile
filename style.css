@@ -4,6 +4,7 @@
   display: inline-block;
   width: 34px;
   height: 18px;
+  flex-shrink: 0; /* Prevent shrinking in flexbox */
 }
 
 .yt-audiophile-switch input {
@@ -21,7 +22,8 @@
   bottom: 0;
   background-color: #aaa;
   transition: 0.3s;
-  border-radius: 34px;
+  border-radius: 9px; /* Half of height for perfect pill shape */
+  box-sizing: border-box;
 }
 
 .yt-audiophile-slider::before {
@@ -30,10 +32,11 @@
   height: 12px;
   width: 12px;
   left: 3px;
-  bottom: 3px;
+  top: 3px; /* Changed from bottom to top for better centering */
   background-color: white;
   transition: 0.3s;
   border-radius: 50%;
+  box-sizing: border-box;
 }
 
 .yt-audiophile-switch input:checked + .yt-audiophile-slider {
@@ -41,5 +44,5 @@
 }
 
 .yt-audiophile-switch input:checked + .yt-audiophile-slider::before {
-  transform: translateX(16px);
+  transform: translateX(16px); /* Move to the right side: 34px - 12px - 3px = 19px, but 16px for smooth animation */
 }

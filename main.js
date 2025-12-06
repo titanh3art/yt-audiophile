@@ -142,7 +142,8 @@ class YouTubeAudiophile {
 }
 
 const TOGGLE_CONTAINER_ID = "yt-audiophile-toggle";
-const TITLE = "YouTube Audiophile (Extension)";
+const TITLE = "Audiophile";
+const TOOLTIP = "YouTube Audiophile Browser Extension";
 
 async function addYtAudiophileToggle(retryCount = 0) {
   // Avoid duplicates if user navigates within YouTube
@@ -192,6 +193,7 @@ async function addYtAudiophileToggle(retryCount = 0) {
   toggleContainer.style.alignItems = "center";
   toggleContainer.style.marginLeft = "12px";
   toggleContainer.style.cursor = "pointer";
+  toggleContainer.style.flexShrink = "0"; // Prevent container from shrinking
   toggleContainer.title = TITLE;
 
   // Create label and switch
