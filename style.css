@@ -46,3 +46,26 @@
 .yt-audiophile-switch input:checked + .yt-audiophile-slider::before {
   transform: translateX(16px); /* Move to the right side: 34px - 12px - 3px = 19px, but 16px for smooth animation */
 }
+
+/* Help icon styling */
+.yt-audiophile-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background-color: var(--yt-spec-text-secondary, #aaa);
+  color: var(--yt-spec-static-brand-white, #fff);
+  font-size: 11px;
+  font-weight: bold;
+  cursor: help;
+  margin-right: 6px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.yt-audiophile-help-icon:hover {
+  background-color: var(--yt-spec-text-primary, #fff);
+  color: var(--yt-spec-static-brand-black, #000);
+}

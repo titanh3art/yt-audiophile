@@ -143,7 +143,7 @@ class YouTubeAudiophile {
 
 const TOGGLE_CONTAINER_ID = "yt-audiophile-toggle";
 const TITLE = "Audiophile";
-const TOOLTIP = "YouTube Audiophile Browser Extension";
+const TOOLTIP = "YouTube Audiophile - Browser Extension";
 
 async function addYtAudiophileToggle(retryCount = 0) {
   // Avoid duplicates if user navigates within YouTube
@@ -194,13 +194,13 @@ async function addYtAudiophileToggle(retryCount = 0) {
   toggleContainer.style.marginLeft = "12px";
   toggleContainer.style.cursor = "pointer";
   toggleContainer.style.flexShrink = "0"; // Prevent container from shrinking
-  toggleContainer.title = TITLE;
 
   // Create label and switch
   toggleContainer.innerHTML = `
     <span style="font-size:13px; color: var(--yt-spec-text-primary, #fff); margin-right:6px;">
       ${TITLE}
     </span>
+    <span class="yt-audiophile-help-icon" title="${TOOLTIP}">?</span>
     <label class="yt-audiophile-switch">
       <input type="checkbox" id="yt-audiophile-checkbox" ${
         isEnabled ? "checked" : ""
