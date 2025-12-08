@@ -1,11 +1,11 @@
 # YouTube Audiophile
 
-A Chrome extension that lets you enjoy YouTube videos as audio-only, saving bandwidth while you listen to music or podcasts.
+A Chrome extension that lets you enjoy YouTube videos as audio-only, saving bandwidth while you listen to music or podcasts, and perfect for workplaces where you want to only listen without visuals. ♫⋆｡♪
 
 ## Features
 
 - Listen to YouTube content without watching videos
-- Reduces data usage by playing in lowest quality
+- Hides the video from view and plays in lowest quality in the background to save bandwidth
 - Easy toggle switch next to the YouTube logo
 - Quick keyboard shortcut (Ctrl+Shift+A)
 - Remembers your preference across sessions
