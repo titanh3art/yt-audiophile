@@ -135,18 +135,6 @@ class YouTubeAudiophile {
   }
 
   static hideExistingThumbnails() {
-    const playlist = document.getElementById("playlist");
-    if (playlist) {
-      this.hideThumbnailsInElement(playlist);
-    }
-
-    const related = document.getElementById("related");
-    if (related) {
-      this.hideThumbnailsInElement(related);
-    }
-  }
-
-  static hideThumbnailsInElement(element) {
     // Find thumbnail images using multiple selectors
     const thumbnailSelectors = [
       "img.yt-core-image", // New YouTube design
@@ -158,9 +146,7 @@ class YouTubeAudiophile {
     ];
 
     thumbnailSelectors.forEach((selector) => {
-      const thumbnails = element.querySelectorAll
-        ? element.querySelectorAll(selector)
-        : [];
+      const thumbnails = document.querySelectorAll(selector);
       thumbnails.forEach((img) => {
         if (this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
           this.replaceThumbnailWithColor(img);
@@ -208,7 +194,7 @@ class YouTubeAudiophile {
       img.closest('a, .ytd-thumbnail, [class*="thumbnail"]') ||
       img.parentElement;
     if (container) {
-      container.style.backgroundColor = "#010032ff";
+      container.style.backgroundColor = "#000000ff";
       container.style.display = "block";
       container.setAttribute("data-thumbnail-hidden", "true");
     }
