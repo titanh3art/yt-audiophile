@@ -1,5 +1,6 @@
 class YouTubeAudiophile {
   static videoObserver = null;
+  static loadingObserver = null;
   static toggleDebounceTimer = null;
 
   static activate() {
@@ -28,6 +29,9 @@ class YouTubeAudiophile {
 
     // Hide existing thumbnails
     this.hideExistingThumbnails();
+
+    // Start observing for loading completion
+    this.startLoadingObserver();
   }
 
   static deactivate() {
@@ -53,6 +57,9 @@ class YouTubeAudiophile {
 
     // Stop observing for new VIDEO element
     this.stopVideoObserver();
+
+    // Stop observing loading completion
+    this.stopLoadingObserver();
 
     // Restore all hidden thumbnails
     this.restoreThumbnails();
@@ -134,6 +141,32 @@ class YouTubeAudiophile {
     }
   }
 
+  static startLoadingObserver() {
+    if (this.loadingObserver) return; // Already observing
+
+    let scrollTimer;
+    this.loadingObserver = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        this.hideExistingThumbnails();
+        console.log(
+          "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
+        );
+      }, 200);
+    };
+
+    window.addEventListener("scroll", this.loadingObserver);
+    console.log("[YouTube Audiophile] Started scroll-based loading observer");
+  }
+
+  static stopLoadingObserver() {
+    if (this.loadingObserver) {
+      window.removeEventListener("scroll", this.loadingObserver);
+      this.loadingObserver = null;
+      console.log("[YouTube Audiophile] Stopped loading observer");
+    }
+  }
+
   static hideExistingThumbnails() {
     // Find thumbnail images using multiple selectors
     const thumbnailSelectors = [
@@ -153,15 +186,6 @@ class YouTubeAudiophile {
         }
       });
     });
-
-    // Also check if the element itself is a thumbnail
-    if (
-      element.tagName === "IMG" &&
-      this.isThumbnail(element) &&
-      !element.hasAttribute("data-original-src")
-    ) {
-      this.replaceThumbnailWithColor(element);
-    }
   }
 
   static isThumbnail(img) {
