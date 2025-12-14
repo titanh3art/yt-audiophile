@@ -149,22 +149,30 @@ class YouTubeAudiophile {
     if (this.loadingObserver) return; // Already observing
 
     let scrollTimer;
+    let previousScrollY = window.scrollY;
     this.loadingObserver = () => {
       try {
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(() => {
-          this.hideExistingThumbnails();
-          console.debug(
-            "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
-          );
-        }, 200);
+        const currentScrollY = window.scrollY;
+        if (currentScrollY > previousScrollY) {
+          // Scrolling down
+          clearTimeout(scrollTimer);
+          scrollTimer = setTimeout(() => {
+            this.hideExistingThumbnails();
+            console.debug(
+              "[YouTube Audiophile] Scroll down stopped, hiding new thumbnails"
+            );
+          }, 200);
+        }
+        previousScrollY = currentScrollY;
       } catch (error) {
         console.warn("[YouTube Audiophile] Error in scroll handler:", error);
       }
     };
 
     window.addEventListener("scroll", this.loadingObserver);
-    console.debug("[YouTube Audiophile] Started scroll-based loading observer");
+    console.debug(
+      "[YouTube Audiophile] Started scroll-down-based loading observer"
+    );
   }
 
   static stopLoadingObserver() {
