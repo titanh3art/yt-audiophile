@@ -23,3 +23,9 @@ A Chrome extension that lets you enjoy YouTube videos as audio-only, saving band
 ## How It Works
 
 To save bandwidth, the extension sets video quality to the lowest available using YouTube's player API and hides the video. This doesn't affect audio quality—YouTube handles audio separately and streams it in optimal quality. The extension doesn't interfere with YouTube's data stream and doesn't block ads, so you can support content creators as usual.
+
+## Changelog
+
+### 1.1.0
+
+- Thumbnail hiding: thumbnails on newly loaded content (via scrolling) are automatically hidden once loading completes
