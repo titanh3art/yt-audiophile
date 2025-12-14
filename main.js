@@ -129,7 +129,7 @@ class YouTubeAudiophile {
         attributes: false, // Don't watch attribute changes for performance
         characterData: false,
       });
-      console.log("[YouTube Audiophile] Started new VIDEO element observer");
+      console.debug("[YouTube Audiophile] Started new VIDEO element observer");
     }
   }
 
@@ -137,7 +137,7 @@ class YouTubeAudiophile {
     if (this.videoObserver) {
       this.videoObserver.disconnect();
       this.videoObserver = null;
-      console.log("[YouTube Audiophile] Stopped video observer");
+      console.debug("[YouTube Audiophile] Stopped video observer");
     }
   }
 
@@ -149,21 +149,21 @@ class YouTubeAudiophile {
       clearTimeout(scrollTimer);
       scrollTimer = setTimeout(() => {
         this.hideExistingThumbnails();
-        console.log(
+        console.debug(
           "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
         );
       }, 200);
     };
 
     window.addEventListener("scroll", this.loadingObserver);
-    console.log("[YouTube Audiophile] Started scroll-based loading observer");
+    console.debug("[YouTube Audiophile] Started scroll-based loading observer");
   }
 
   static stopLoadingObserver() {
     if (this.loadingObserver) {
       window.removeEventListener("scroll", this.loadingObserver);
       this.loadingObserver = null;
-      console.log("[YouTube Audiophile] Stopped loading observer");
+      console.debug("[YouTube Audiophile] Stopped loading observer");
     }
   }
 
