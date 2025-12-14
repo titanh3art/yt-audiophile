@@ -6,15 +6,19 @@ A Chrome extension that lets you enjoy YouTube videos as audio-only, saving band
 
 - Listen to YouTube content without watching videos
 - Hides the video from view and plays in lowest quality in the background to save bandwidth
+- Automatically hides video thumbnails by replacing them with solid black background for a distraction-free experience
+- Thumbnails on newly loaded content (via scrolling) are hidden once loading completes
 - Easy toggle switch next to the YouTube logo
 - Quick keyboard shortcut (Ctrl+Shift+A)
 - Remembers your preference across sessions
 
 ## Usage
 
-- Use the toggle switch to switch between audio-only and video modes
+- Use the toggle switch next to the YouTube logo to enable/disable audio-only mode
+- When enabled, the video is hidden, thumbnails are replaced with colors, and video quality is set to the lowest to save bandwidth
+- New thumbnails loaded while scrolling are automatically hidden once loading completes
 - Press Ctrl+Shift+A for quick toggling
-- Your setting is saved automatically
+- Your setting is saved automatically and persists across sessions
 
 ## How It Works
 
