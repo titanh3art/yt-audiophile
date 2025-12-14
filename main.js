@@ -91,32 +91,36 @@ class YouTubeAudiophile {
 
     let mutationCount = 0;
     this.videoObserver = new MutationObserver((mutations) => {
-      // Limit processing to avoid performance issues
-      if (mutationCount++ > 100) {
-        console.warn(
-          "[YouTube Audiophile] Too many mutations, throttling observer"
-        );
-        return;
-      }
+      try {
+        // Limit processing to avoid performance issues
+        if (mutationCount++ > 100) {
+          console.warn(
+            "[YouTube Audiophile] Too many mutations, throttling observer"
+          );
+          return;
+        }
 
-      // Reset counter periodically
-      if (mutationCount > 50) {
-        setTimeout(() => {
-          mutationCount = 0;
-        }, 1000);
-      }
+        // Reset counter periodically
+        if (mutationCount > 50) {
+          setTimeout(() => {
+            mutationCount = 0;
+          }, 1000);
+        }
 
-      for (const mutation of mutations) {
-        if (mutation.type === "childList") {
-          for (const node of mutation.addedNodes) {
-            if (
-              node.nodeType === Node.ELEMENT_NODE &&
-              node.tagName === "VIDEO"
-            ) {
-              this.activate();
+        for (const mutation of mutations) {
+          if (mutation.type === "childList") {
+            for (const node of mutation.addedNodes) {
+              if (
+                node.nodeType === Node.ELEMENT_NODE &&
+                node.tagName === "VIDEO"
+              ) {
+                this.activate();
+              }
             }
           }
         }
+      } catch (error) {
+        console.warn("[YouTube Audiophile] Error in video observer:", error);
       }
     });
 
@@ -146,13 +150,17 @@ class YouTubeAudiophile {
 
     let scrollTimer;
     this.loadingObserver = () => {
-      clearTimeout(scrollTimer);
-      scrollTimer = setTimeout(() => {
-        this.hideExistingThumbnails();
-        console.debug(
-          "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
-        );
-      }, 200);
+      try {
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(() => {
+          this.hideExistingThumbnails();
+          console.debug(
+            "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
+          );
+        }, 200);
+      } catch (error) {
+        console.warn("[YouTube Audiophile] Error in scroll handler:", error);
+      }
     };
 
     window.addEventListener("scroll", this.loadingObserver);
@@ -249,14 +257,23 @@ class YouTubeAudiophile {
 
   static async loadState() {
     return new Promise((resolve) => {
-      chrome.storage.sync.get(["audiophileEnabled"], (result) => {
-        resolve(result.audiophileEnabled || false);
-      });
+      try {
+        chrome.storage.sync.get(["audiophileEnabled"], (result) => {
+          resolve(result.audiophileEnabled || false);
+        });
+      } catch (error) {
+        console.warn("[YouTube Audiophile] Error loading state:", error);
+        resolve(false);
+      }
     });
   }
 
   static saveState(enabled) {
-    chrome.storage.sync.set({ audiophileEnabled: enabled });
+    try {
+      chrome.storage.sync.set({ audiophileEnabled: enabled });
+    } catch (error) {
+      console.warn("[YouTube Audiophile] Error saving state:", error);
+    }
   }
 }
 
@@ -265,57 +282,58 @@ const TITLE = "Audiophile";
 const TOOLTIP = "YouTube Audiophile - Browser Extension";
 
 async function addYtAudiophileToggle(retryCount = 0) {
-  // Avoid duplicates if user navigates within YouTube
-  if (document.getElementById(TOGGLE_CONTAINER_ID)) return;
+  try {
+    // Avoid duplicates if user navigates within YouTube
+    if (document.getElementById(TOGGLE_CONTAINER_ID)) return;
 
-  // Enhanced element detection with multiple selectors
-  const logoSelectors = [
-    "#logo", // Current standard
-    "ytd-masthead #logo", // More specific
-    ".ytd-masthead #logo", // Alternative class-based
-    "[aria-label*='YouTube']", // Accessibility-based
-    "a[href='/'] img[alt*='YouTube']", // Logo link fallback
-    "#masthead #logo", // Alternative masthead selector
-  ];
+    // Enhanced element detection with multiple selectors
+    const logoSelectors = [
+      "#logo", // Current standard
+      "ytd-masthead #logo", // More specific
+      ".ytd-masthead #logo", // Alternative class-based
+      "[aria-label*='YouTube']", // Accessibility-based
+      "a[href='/'] img[alt*='YouTube']", // Logo link fallback
+      "#masthead #logo", // Alternative masthead selector
+    ];
 
-  let logoContainer = null;
-  for (const selector of logoSelectors) {
-    logoContainer = document.querySelector(selector);
-    if (logoContainer) {
-      // Additional validation - make sure it's in the header area
-      const masthead = logoContainer.closest(
-        "#masthead, ytd-masthead, .ytd-masthead"
-      );
-      if (masthead) break;
+    let logoContainer = null;
+    for (const selector of logoSelectors) {
+      logoContainer = document.querySelector(selector);
+      if (logoContainer) {
+        // Additional validation - make sure it's in the header area
+        const masthead = logoContainer.closest(
+          "#masthead, ytd-masthead, .ytd-masthead"
+        );
+        if (masthead) break;
+      }
     }
-  }
 
-  if (!logoContainer) {
-    if (retryCount < 100) {
-      // Max 100 retries (~10 seconds at 60fps)
-      requestAnimationFrame(() => addYtAudiophileToggle(retryCount + 1));
-    } else {
-      console.warn(
-        "[YouTube Audiophile] Could not find YouTube logo container after retries with all selectors"
-      );
+    if (!logoContainer) {
+      if (retryCount < 100) {
+        // Max 100 retries (~10 seconds at 60fps)
+        requestAnimationFrame(() => addYtAudiophileToggle(retryCount + 1));
+      } else {
+        console.warn(
+          "[YouTube Audiophile] Could not find YouTube logo container after retries with all selectors"
+        );
+      }
+      return;
     }
-    return;
-  }
 
-  // Load saved state
-  const isEnabled = await YouTubeAudiophile.loadState();
+    // Load saved state
+    const isEnabled = await YouTubeAudiophile.loadState();
 
-  // Create toggle container
-  const toggleContainer = document.createElement("div");
-  toggleContainer.id = TOGGLE_CONTAINER_ID;
-  toggleContainer.style.display = "flex";
-  toggleContainer.style.alignItems = "center";
-  toggleContainer.style.marginLeft = "12px";
-  toggleContainer.style.cursor = "pointer";
-  toggleContainer.style.flexShrink = "0"; // Prevent container from shrinking
+    // Create toggle container
+    const toggleContainer = document.createElement("div");
+    toggleContainer.id = TOGGLE_CONTAINER_ID;
+    toggleContainer.style.display = "flex";
+    toggleContainer.style.alignItems = "center";
+    toggleContainer.style.marginLeft = "12px";
+    toggleContainer.style.cursor = "pointer";
+    toggleContainer.style.flexShrink = "0"; // Prevent container from shrinking
 
-  // Create label and switch
-  toggleContainer.innerHTML = `
+    // Create label and switch
+    toggleContainer.innerHTML = `
     <span style="font-size:13px; color: var(--yt-spec-text-primary, #fff); margin-right:6px;">
       ${TITLE}
     </span>
@@ -328,36 +346,39 @@ async function addYtAudiophileToggle(retryCount = 0) {
     </label>
   `;
 
-  logoContainer.parentNode.insertBefore(
-    toggleContainer,
-    logoContainer.nextSibling
-  );
+    logoContainer.parentNode.insertBefore(
+      toggleContainer,
+      logoContainer.nextSibling
+    );
 
-  const checkbox = toggleContainer.querySelector("#yt-audiophile-checkbox");
+    const checkbox = toggleContainer.querySelector("#yt-audiophile-checkbox");
 
-  // Apply initial state
-  if (isEnabled) {
-    YouTubeAudiophile.activate();
-  }
-
-  checkbox.addEventListener("change", () => {
-    const enabled = checkbox.checked;
-    YouTubeAudiophile.saveState(enabled);
-    if (enabled) {
+    // Apply initial state
+    if (isEnabled) {
       YouTubeAudiophile.activate();
-    } else {
-      YouTubeAudiophile.deactivate();
     }
-  });
 
-  // Add keyboard shortcut (Ctrl+Shift+A)
-  document.addEventListener("keydown", (event) => {
-    if (event.ctrlKey && event.shiftKey && event.key === "A") {
-      event.preventDefault();
-      checkbox.checked = !checkbox.checked;
-      checkbox.dispatchEvent(new Event("change"));
-    }
-  });
+    checkbox.addEventListener("change", () => {
+      const enabled = checkbox.checked;
+      YouTubeAudiophile.saveState(enabled);
+      if (enabled) {
+        YouTubeAudiophile.activate();
+      } else {
+        YouTubeAudiophile.deactivate();
+      }
+    });
+
+    // Add keyboard shortcut (Ctrl+Shift+A)
+    document.addEventListener("keydown", (event) => {
+      if (event.ctrlKey && event.shiftKey && event.key === "A") {
+        event.preventDefault();
+        checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event("change"));
+      }
+    });
+  } catch (error) {
+    console.warn("[YouTube Audiophile] Error in addYtAudiophileToggle:", error);
+  }
 }
 
 addYtAudiophileToggle();
