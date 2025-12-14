@@ -25,6 +25,9 @@ class YouTubeAudiophile {
 
     // Start observing for new VIDEO element
     this.startVideoObserver();
+
+    // Hide existing thumbnails
+    this.hideExistingThumbnails();
   }
 
   static deactivate() {
@@ -48,8 +51,11 @@ class YouTubeAudiophile {
     // Show current video
     this.showCurrentVideo();
 
-    // Start observing for new VIDEO element
+    // Stop observing for new VIDEO element
     this.stopVideoObserver();
+
+    // Restore all hidden thumbnails
+    this.restoreThumbnails();
   }
 
   static injectScript(scriptName) {
@@ -126,6 +132,109 @@ class YouTubeAudiophile {
       this.videoObserver = null;
       console.log("[YouTube Audiophile] Stopped video observer");
     }
+  }
+
+  static hideExistingThumbnails() {
+    const playlist = document.getElementById("playlist");
+    if (playlist) {
+      this.hideThumbnailsInElement(playlist);
+    }
+
+    const related = document.getElementById("related");
+    if (related) {
+      this.hideThumbnailsInElement(related);
+    }
+  }
+
+  static hideThumbnailsInElement(element) {
+    // Find thumbnail images using multiple selectors
+    const thumbnailSelectors = [
+      "img.yt-core-image", // New YouTube design
+      'img[src*="vi"]', // Video ID thumbnails
+      "#thumbnail img", // General thumbnail containers
+      ".ytd-thumbnail img", // YouTube thumbnail components
+      ".yt-simple-endpoint img", // Clickable thumbnail links
+      'a[href*="/watch"] img', // Watch page links with images
+    ];
+
+    thumbnailSelectors.forEach((selector) => {
+      const thumbnails = element.querySelectorAll
+        ? element.querySelectorAll(selector)
+        : [];
+      thumbnails.forEach((img) => {
+        if (this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
+          this.replaceThumbnailWithColor(img);
+        }
+      });
+    });
+
+    // Also check if the element itself is a thumbnail
+    if (
+      element.tagName === "IMG" &&
+      this.isThumbnail(element) &&
+      !element.hasAttribute("data-original-src")
+    ) {
+      this.replaceThumbnailWithColor(element);
+    }
+  }
+
+  static isThumbnail(img) {
+    // Check if this is actually a video thumbnail
+    if (!img || !img.src) return false;
+
+    const src = img.src.toLowerCase();
+    // YouTube thumbnails contain 'vi/' in the URL
+    return (
+      src.includes("vi/") ||
+      src.includes("ytimg.com") ||
+      img.closest(
+        '[id*="thumbnail"], [class*="thumbnail"], .ytd-rich-grid-media, .ytd-video-meta-block'
+      )
+    );
+  }
+
+  static replaceThumbnailWithColor(img) {
+    // Store original source for restoration
+    if (!img.hasAttribute("data-original-src")) {
+      img.setAttribute("data-original-src", img.src);
+      img.setAttribute("data-original-display", img.style.display || "");
+    }
+
+    // Hide the image and set background color on parent container
+    img.style.display = "none";
+
+    // Find the thumbnail container and set background
+    const container =
+      img.closest('a, .ytd-thumbnail, [class*="thumbnail"]') ||
+      img.parentElement;
+    if (container) {
+      container.style.backgroundColor = "#010032ff";
+      container.style.display = "block";
+      container.setAttribute("data-thumbnail-hidden", "true");
+    }
+  }
+
+  static restoreThumbnails() {
+    // Find all hidden thumbnails and restore them
+    const hiddenImages = document.querySelectorAll("img[data-original-src]");
+    hiddenImages.forEach((img) => {
+      // Restore original source
+      if (img.hasAttribute("data-original-src")) {
+        img.src = img.getAttribute("data-original-src");
+        img.style.display = img.getAttribute("data-original-display") || "";
+        img.removeAttribute("data-original-src");
+        img.removeAttribute("data-original-display");
+      }
+    });
+
+    // Remove background colors from containers
+    const hiddenContainers = document.querySelectorAll(
+      "[data-thumbnail-hidden]"
+    );
+    hiddenContainers.forEach((container) => {
+      container.style.backgroundColor = "";
+      container.removeAttribute("data-thumbnail-hidden");
+    });
   }
 
   static async loadState() {
