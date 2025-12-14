@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Audiophile",
-  "description": "Plays audio and hides video on youtube.com",
-  "version": "1.0.0",
+  "description": "Plays only audio; hides video and thumbnails on YouTube",
+  "version": "1.1.0",
   "author": "titanh3art",
   "homepage_url": "https://github.com/titanh3art/yt-audiophile.git",
   "permissions": ["storage"],

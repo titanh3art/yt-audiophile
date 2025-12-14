@@ -11,7 +11,13 @@
     if (availableLevels && availableLevels.length > 0) {
       // Quality levels ordered from highest to lowest
       // Find highest quality that's 1080p or below
-      const qualityPreferences = ["hd1080", "hd720", "large", "medium", "small"];
+      const qualityPreferences = [
+        "hd1080",
+        "hd720",
+        "large",
+        "medium",
+        "small",
+      ];
       let targetQuality = null;
 
       for (const pref of qualityPreferences) {
@@ -24,13 +30,16 @@
       // If no preferred quality found, use the highest available (but not 4K)
       if (!targetQuality) {
         // Filter out 4K qualities, find highest remaining
-        const non4KLevels = availableLevels.filter(level => !level.includes("2160") && !level.includes("1440"));
-        targetQuality = non4KLevels.length > 0 ? non4KLevels[0] : availableLevels[0];
+        const non4KLevels = availableLevels.filter(
+          (level) => !level.includes("2160") && !level.includes("1440")
+        );
+        targetQuality =
+          non4KLevels.length > 0 ? non4KLevels[0] : availableLevels[0];
       }
 
       player.setPlaybackQualityRange(targetQuality, targetQuality);
       player.setPlaybackQuality(targetQuality);
-      console.log("[YouTube Audiophile] Set quality to:", targetQuality);
+      console.debug("[YouTube Audiophile] Set quality to:", targetQuality);
     } else {
       // Fallback to hd1080 or large
       try {

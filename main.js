@@ -1,5 +1,6 @@
 class YouTubeAudiophile {
   static videoObserver = null;
+  static loadingObserver = null;
   static toggleDebounceTimer = null;
 
   static activate() {
@@ -25,6 +26,12 @@ class YouTubeAudiophile {
 
     // Start observing for new VIDEO element
     this.startVideoObserver();
+
+    // Hide existing thumbnails
+    this.hideExistingThumbnails();
+
+    // Start observing for loading completion
+    this.startLoadingObserver();
   }
 
   static deactivate() {
@@ -48,8 +55,14 @@ class YouTubeAudiophile {
     // Show current video
     this.showCurrentVideo();
 
-    // Start observing for new VIDEO element
+    // Stop observing for new VIDEO element
     this.stopVideoObserver();
+
+    // Stop observing loading completion
+    this.stopLoadingObserver();
+
+    // Restore all hidden thumbnails
+    this.restoreThumbnails();
   }
 
   static injectScript(scriptName) {
@@ -116,7 +129,7 @@ class YouTubeAudiophile {
         attributes: false, // Don't watch attribute changes for performance
         characterData: false,
       });
-      console.log("[YouTube Audiophile] Started new VIDEO element observer");
+      console.debug("[YouTube Audiophile] Started new VIDEO element observer");
     }
   }
 
@@ -124,8 +137,114 @@ class YouTubeAudiophile {
     if (this.videoObserver) {
       this.videoObserver.disconnect();
       this.videoObserver = null;
-      console.log("[YouTube Audiophile] Stopped video observer");
+      console.debug("[YouTube Audiophile] Stopped video observer");
     }
+  }
+
+  static startLoadingObserver() {
+    if (this.loadingObserver) return; // Already observing
+
+    let scrollTimer;
+    this.loadingObserver = () => {
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(() => {
+        this.hideExistingThumbnails();
+        console.debug(
+          "[YouTube Audiophile] Scroll stopped, hiding new thumbnails"
+        );
+      }, 200);
+    };
+
+    window.addEventListener("scroll", this.loadingObserver);
+    console.debug("[YouTube Audiophile] Started scroll-based loading observer");
+  }
+
+  static stopLoadingObserver() {
+    if (this.loadingObserver) {
+      window.removeEventListener("scroll", this.loadingObserver);
+      this.loadingObserver = null;
+      console.debug("[YouTube Audiophile] Stopped loading observer");
+    }
+  }
+
+  static hideExistingThumbnails() {
+    // Find thumbnail images using multiple selectors
+    const thumbnailSelectors = [
+      "img.yt-core-image", // New YouTube design
+      'img[src*="vi"]', // Video ID thumbnails
+      "#thumbnail img", // General thumbnail containers
+      ".ytd-thumbnail img", // YouTube thumbnail components
+      ".yt-simple-endpoint img", // Clickable thumbnail links
+      'a[href*="/watch"] img', // Watch page links with images
+    ];
+
+    thumbnailSelectors.forEach((selector) => {
+      const thumbnails = document.querySelectorAll(selector);
+      thumbnails.forEach((img) => {
+        if (this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
+          this.replaceThumbnailWithColor(img);
+        }
+      });
+    });
+  }
+
+  static isThumbnail(img) {
+    // Check if this is actually a video thumbnail
+    if (!img || !img.src) return false;
+
+    const src = img.src.toLowerCase();
+    // YouTube thumbnails contain 'vi/' in the URL
+    return (
+      src.includes("vi/") ||
+      src.includes("ytimg.com") ||
+      img.closest(
+        '[id*="thumbnail"], [class*="thumbnail"], .ytd-rich-grid-media, .ytd-video-meta-block'
+      )
+    );
+  }
+
+  static replaceThumbnailWithColor(img) {
+    // Store original source for restoration
+    if (!img.hasAttribute("data-original-src")) {
+      img.setAttribute("data-original-src", img.src);
+      img.setAttribute("data-original-display", img.style.display || "");
+    }
+
+    // Hide the image and set background color on parent container
+    img.style.display = "none";
+
+    // Find the thumbnail container and set background
+    const container =
+      img.closest('a, .ytd-thumbnail, [class*="thumbnail"]') ||
+      img.parentElement;
+    if (container) {
+      container.style.backgroundColor = "#000000ff";
+      container.style.display = "block";
+      container.setAttribute("data-thumbnail-hidden", "true");
+    }
+  }
+
+  static restoreThumbnails() {
+    // Find all hidden thumbnails and restore them
+    const hiddenImages = document.querySelectorAll("img[data-original-src]");
+    hiddenImages.forEach((img) => {
+      // Restore original source
+      if (img.hasAttribute("data-original-src")) {
+        img.src = img.getAttribute("data-original-src");
+        img.style.display = img.getAttribute("data-original-display") || "";
+        img.removeAttribute("data-original-src");
+        img.removeAttribute("data-original-display");
+      }
+    });
+
+    // Remove background colors from containers
+    const hiddenContainers = document.querySelectorAll(
+      "[data-thumbnail-hidden]"
+    );
+    hiddenContainers.forEach((container) => {
+      container.style.backgroundColor = "";
+      container.removeAttribute("data-thumbnail-hidden");
+    });
   }
 
   static async loadState() {

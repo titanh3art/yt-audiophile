@@ -12,7 +12,7 @@
       const lowestQuality = availableLevels[availableLevels.length - 2]; // Last is "auto", second to last is lowest
       player.setPlaybackQualityRange(lowestQuality, lowestQuality);
       player.setPlaybackQuality(lowestQuality);
-      console.log("[YouTube Audiophile] Set quality to:", lowestQuality);
+      console.debug("[YouTube Audiophile] Set quality to:", lowestQuality);
     } else {
       // Fallback to tiny
       player.setPlaybackQualityRange("tiny", "tiny");
