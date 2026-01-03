@@ -1,7 +1,15 @@
 class YouTubeAudiophile {
   static videoObserver = null;
-  static loadingObserver = null;
+  static thumbnailObserver = null;
   static toggleDebounceTimer = null;
+  static thumbnailSelectors = [
+    "img.yt-core-image", // New YouTube design
+    'img[src*="vi"]', // Video ID thumbnails
+    "#thumbnail img", // General thumbnail containers
+    ".ytd-thumbnail img", // YouTube thumbnail components
+    ".yt-simple-endpoint img", // Clickable thumbnail links
+    'a[href*="/watch"] img', // Watch page links with images
+  ];
 
   static activate() {
     // Debounce rapid toggles
@@ -31,7 +39,7 @@ class YouTubeAudiophile {
     this.hideExistingThumbnails();
 
     // Start observing for loading completion
-    this.startLoadingObserver();
+    this.startThumbnailObserver();
   }
 
   static deactivate() {
@@ -59,7 +67,7 @@ class YouTubeAudiophile {
     this.stopVideoObserver();
 
     // Stop observing loading completion
-    this.stopLoadingObserver();
+    this.stopThumbnailObserver();
 
     // Restore all hidden thumbnails
     this.restoreThumbnails();
@@ -75,14 +83,29 @@ class YouTubeAudiophile {
   static hideCurrentVideo() {
     const video = document.querySelector("video");
     if (!video) return;
-    video.style.display = "none";
+    // Store original opacity for restoration
+    if (!video.hasAttribute("ytaudiophile-data-original-opacity")) {
+      video.setAttribute(
+        "ytaudiophile-data-original-opacity",
+        video.style.opacity || ""
+      );
+    }
+    video.style.opacity = "0";
     video.setAttribute("aria-hidden", "true");
   }
 
   static showCurrentVideo() {
     const video = document.querySelector("video");
     if (!video) return;
-    video.style.display = "";
+    // Restore original opacity
+    if (video.hasAttribute("ytaudiophile-data-original-opacity")) {
+      video.style.opacity = video.getAttribute(
+        "ytaudiophile-data-original-opacity"
+      );
+      video.removeAttribute("ytaudiophile-data-original-opacity");
+    } else {
+      video.style.opacity = "";
+    }
     video.setAttribute("aria-hidden", "false");
   }
 
@@ -145,59 +168,98 @@ class YouTubeAudiophile {
     }
   }
 
-  static startLoadingObserver() {
-    if (this.loadingObserver) return; // Already observing
+  static startThumbnailObserver() {
+    if (this.thumbnailObserver) return; // Already observing
 
-    let scrollTimer;
-    let previousScrollY = window.scrollY;
-    this.loadingObserver = () => {
+    this.thumbnailObserver = new MutationObserver((mutations) => {
       try {
-        const currentScrollY = window.scrollY;
-        if (currentScrollY > previousScrollY) {
-          // Scrolling down
-          clearTimeout(scrollTimer);
-          scrollTimer = setTimeout(() => {
-            this.hideExistingThumbnails();
-            console.debug(
-              "[YouTube Audiophile] Scroll down stopped, hiding new thumbnails"
-            );
-          }, 200);
+        for (const mutation of mutations) {
+          if (mutation.type === "childList") {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Check if the added element or its descendants are thumbnails
+                this.checkAndHideNewThumbnails(node);
+              }
+            }
+          } else if (
+            mutation.type === "attributes" &&
+            mutation.attributeName === "src"
+          ) {
+            // Check if an img src was changed and it's a thumbnail
+            const img = mutation.target;
+            if (
+              img.tagName === "IMG" &&
+              this.isThumbnail(img) &&
+              !img.hasAttribute("ytaudiophile-data-original-src")
+            ) {
+              this.replaceThumbnailWithColor(img);
+            }
+          }
         }
-        previousScrollY = currentScrollY;
       } catch (error) {
-        console.warn("[YouTube Audiophile] Error in scroll handler:", error);
+        console.warn(
+          "[YouTube Audiophile] Error in thumbnail observer:",
+          error
+        );
       }
-    };
+    });
 
-    window.addEventListener("scroll", this.loadingObserver);
+    // Observe the entire document body for new thumbnail elements and src changes
+    this.thumbnailObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["src"],
+    });
+
     console.debug(
-      "[YouTube Audiophile] Started scroll-down-based loading observer"
+      "[YouTube Audiophile] Started mutation observer for new thumbnails and src changes"
     );
   }
 
-  static stopLoadingObserver() {
-    if (this.loadingObserver) {
-      window.removeEventListener("scroll", this.loadingObserver);
-      this.loadingObserver = null;
-      console.debug("[YouTube Audiophile] Stopped loading observer");
+  static checkAndHideNewThumbnails(node) {
+    // Find thumbnail images within the added node and its subtree
+    this.thumbnailSelectors.forEach((selector) => {
+      const thumbnails = node.querySelectorAll
+        ? node.querySelectorAll(selector)
+        : [];
+      thumbnails.forEach((img) => {
+        if (
+          this.isThumbnail(img) &&
+          !img.hasAttribute("ytaudiophile-data-original-src")
+        ) {
+          this.replaceThumbnailWithColor(img);
+        }
+      });
+    });
+
+    // Also check if the node itself is a thumbnail image
+    if (
+      node.tagName === "IMG" &&
+      this.isThumbnail(node) &&
+      !node.hasAttribute("ytaudiophile-data-original-src")
+    ) {
+      this.replaceThumbnailWithColor(node);
+    }
+  }
+
+  static stopThumbnailObserver() {
+    if (this.thumbnailObserver) {
+      this.thumbnailObserver.disconnect();
+      this.thumbnailObserver = null;
+      console.debug("[YouTube Audiophile] Stopped thumbnail observer");
     }
   }
 
   static hideExistingThumbnails() {
     // Find thumbnail images using multiple selectors
-    const thumbnailSelectors = [
-      "img.yt-core-image", // New YouTube design
-      'img[src*="vi"]', // Video ID thumbnails
-      "#thumbnail img", // General thumbnail containers
-      ".ytd-thumbnail img", // YouTube thumbnail components
-      ".yt-simple-endpoint img", // Clickable thumbnail links
-      'a[href*="/watch"] img', // Watch page links with images
-    ];
-
-    thumbnailSelectors.forEach((selector) => {
+    this.thumbnailSelectors.forEach((selector) => {
       const thumbnails = document.querySelectorAll(selector);
       thumbnails.forEach((img) => {
-        if (this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
+        if (
+          this.isThumbnail(img) &&
+          !img.hasAttribute("ytaudiophile-data-original-src")
+        ) {
           this.replaceThumbnailWithColor(img);
         }
       });
@@ -207,6 +269,15 @@ class YouTubeAudiophile {
   static isThumbnail(img) {
     // Check if this is actually a video thumbnail
     if (!img || !img.src) return false;
+
+    // Exclude images inside comment sections (profile avatars)
+    if (
+      img.closest(
+        '.ytd-comment-thread-renderer, .ytd-comment-renderer, [class*="comment"]'
+      )
+    ) {
+      return false;
+    }
 
     const src = img.src.toLowerCase();
     // YouTube thumbnails contain 'vi/' in the URL
@@ -221,9 +292,12 @@ class YouTubeAudiophile {
 
   static replaceThumbnailWithColor(img) {
     // Store original source for restoration
-    if (!img.hasAttribute("data-original-src")) {
-      img.setAttribute("data-original-src", img.src);
-      img.setAttribute("data-original-display", img.style.display || "");
+    if (!img.hasAttribute("ytaudiophile-data-original-src")) {
+      img.setAttribute("ytaudiophile-data-original-src", img.src);
+      img.setAttribute(
+        "ytaudiophile-data-original-display",
+        img.style.display || ""
+      );
     }
 
     // Hide the image and set background color on parent container
@@ -236,30 +310,33 @@ class YouTubeAudiophile {
     if (container) {
       container.style.backgroundColor = "#000000ff";
       container.style.display = "block";
-      container.setAttribute("data-thumbnail-hidden", "true");
+      container.setAttribute("ytaudiophile-data-thumbnail-hidden", "true");
     }
   }
 
   static restoreThumbnails() {
     // Find all hidden thumbnails and restore them
-    const hiddenImages = document.querySelectorAll("img[data-original-src]");
+    const hiddenImages = document.querySelectorAll(
+      "img[ytaudiophile-data-original-src]"
+    );
     hiddenImages.forEach((img) => {
       // Restore original source
-      if (img.hasAttribute("data-original-src")) {
-        img.src = img.getAttribute("data-original-src");
-        img.style.display = img.getAttribute("data-original-display") || "";
-        img.removeAttribute("data-original-src");
-        img.removeAttribute("data-original-display");
+      if (img.hasAttribute("ytaudiophile-data-original-src")) {
+        img.src = img.getAttribute("ytaudiophile-data-original-src");
+        img.style.display =
+          img.getAttribute("ytaudiophile-data-original-display") || "";
+        img.removeAttribute("ytaudiophile-data-original-src");
+        img.removeAttribute("ytaudiophile-data-original-display");
       }
     });
 
     // Remove background colors from containers
     const hiddenContainers = document.querySelectorAll(
-      "[data-thumbnail-hidden]"
+      "[ytaudiophile-data-thumbnail-hidden]"
     );
     hiddenContainers.forEach((container) => {
       container.style.backgroundColor = "";
-      container.removeAttribute("data-thumbnail-hidden");
+      container.removeAttribute("ytaudiophile-data-thumbnail-hidden");
     });
   }
 
