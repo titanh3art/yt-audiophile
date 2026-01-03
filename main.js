@@ -148,38 +148,71 @@ class YouTubeAudiophile {
   static startLoadingObserver() {
     if (this.loadingObserver) return; // Already observing
 
-    let scrollTimer;
-    let previousScrollY = window.scrollY;
-    this.loadingObserver = () => {
+    this.loadingObserver = new MutationObserver((mutations) => {
       try {
-        const currentScrollY = window.scrollY;
-        if (currentScrollY > previousScrollY) {
-          // Scrolling down
-          clearTimeout(scrollTimer);
-          scrollTimer = setTimeout(() => {
-            this.hideExistingThumbnails();
-            console.debug(
-              "[YouTube Audiophile] Scroll down stopped, hiding new thumbnails"
-            );
-          }, 200);
+        for (const mutation of mutations) {
+          if (mutation.type === "childList") {
+            for (const node of mutation.addedNodes) {
+              if (node.nodeType === Node.ELEMENT_NODE) {
+                // Check if the added element or its descendants are thumbnails
+                this.checkAndHideNewThumbnails(node);
+              }
+            }
+          } else if (mutation.type === "attributes" && mutation.attributeName === "src") {
+            // Check if an img src was changed and it's a thumbnail
+            const img = mutation.target;
+            if (img.tagName === "IMG" && this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
+              this.replaceThumbnailWithColor(img);
+            }
+          }
         }
-        previousScrollY = currentScrollY;
       } catch (error) {
-        console.warn("[YouTube Audiophile] Error in scroll handler:", error);
+        console.warn("[YouTube Audiophile] Error in thumbnail observer:", error);
       }
-    };
+    });
 
-    window.addEventListener("scroll", this.loadingObserver);
-    console.debug(
-      "[YouTube Audiophile] Started scroll-down-based loading observer"
-    );
+    // Observe the entire document body for new thumbnail elements and src changes
+    this.loadingObserver.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src'],
+    });
+
+    console.debug("[YouTube Audiophile] Started mutation observer for new thumbnails and src changes");
+  }
+
+  static checkAndHideNewThumbnails(node) {
+    // Find thumbnail images within the added node and its subtree
+    const thumbnailSelectors = [
+      "img.yt-core-image", // New YouTube design
+      'img[src*="vi"]', // Video ID thumbnails
+      "#thumbnail img", // General thumbnail containers
+      ".ytd-thumbnail img", // YouTube thumbnail components
+      ".yt-simple-endpoint img", // Clickable thumbnail links
+      'a[href*="/watch"] img', // Watch page links with images
+    ];
+
+    thumbnailSelectors.forEach((selector) => {
+      const thumbnails = node.querySelectorAll ? node.querySelectorAll(selector) : [];
+      thumbnails.forEach((img) => {
+        if (this.isThumbnail(img) && !img.hasAttribute("data-original-src")) {
+          this.replaceThumbnailWithColor(img);
+        }
+      });
+    });
+
+    // Also check if the node itself is a thumbnail image
+    if (node.tagName === "IMG" && this.isThumbnail(node) && !node.hasAttribute("data-original-src")) {
+      this.replaceThumbnailWithColor(node);
+    }
   }
 
   static stopLoadingObserver() {
     if (this.loadingObserver) {
-      window.removeEventListener("scroll", this.loadingObserver);
+      this.loadingObserver.disconnect();
       this.loadingObserver = null;
-      console.debug("[YouTube Audiophile] Stopped loading observer");
+      console.debug("[YouTube Audiophile] Stopped thumbnail observer");
     }
   }
 
