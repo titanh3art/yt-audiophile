@@ -75,14 +75,24 @@ class YouTubeAudiophile {
   static hideCurrentVideo() {
     const video = document.querySelector("video");
     if (!video) return;
-    video.style.display = "none";
+    // Store original opacity for restoration
+    if (!video.hasAttribute("data-original-opacity")) {
+      video.setAttribute("data-original-opacity", video.style.opacity || "");
+    }
+    video.style.opacity = "0";
     video.setAttribute("aria-hidden", "true");
   }
 
   static showCurrentVideo() {
     const video = document.querySelector("video");
     if (!video) return;
-    video.style.display = "";
+    // Restore original opacity
+    if (video.hasAttribute("data-original-opacity")) {
+      video.style.opacity = video.getAttribute("data-original-opacity");
+      video.removeAttribute("data-original-opacity");
+    } else {
+      video.style.opacity = "";
+    }
     video.setAttribute("aria-hidden", "false");
   }
 
@@ -240,6 +250,11 @@ class YouTubeAudiophile {
   static isThumbnail(img) {
     // Check if this is actually a video thumbnail
     if (!img || !img.src) return false;
+
+    // Exclude images inside comment sections (profile avatars)
+    if (img.closest('.ytd-comment-thread-renderer, .ytd-comment-renderer, [class*="comment"]')) {
+      return false;
+    }
 
     const src = img.src.toLowerCase();
     // YouTube thumbnails contain 'vi/' in the URL
