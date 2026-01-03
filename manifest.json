@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "YouTube Audiophile",
-  "description": "Chrome Extension to play only audio and hide video and thumbnails on YouTube",
-  "version": "1.1.0",
+  "description": "A Chrome extension to hide video and thumbnails while playing only the audio on YouTube",
+  "version": "1.2.0",
   "author": "titanh3art",
   "homepage_url": "https://github.com/titanh3art/yt-audiophile.git",
   "permissions": ["storage"],
